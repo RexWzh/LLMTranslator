@@ -1,6 +1,6 @@
 import re
 from chattool import *
-from longtext import splittext
+from .longtext import splittext
 from typing import Callable, Union, List
 
 def md2blocks(mdtxt, splitline='---SPLITLINE---'):

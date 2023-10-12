@@ -1,0 +1,1 @@
+from .longtext import translate_file
