@@ -3,6 +3,23 @@ from chattool import Chat, process_chats, async_chat_completion, load_chats
 from typing import Callable, Union
 
 count_token = lambda txt:Chat(txt).prompt_token()
+
+def getfiles(path, ext='.md'):
+    """Get files with the specified extension.
+
+    Args:
+        path (str): path
+        ext (str): extension
+    Returns:
+        target_files (list): list of files
+    """
+    target_files = []
+    for root, _, files in os.walk(path):
+        for file in files:
+            if file.endswith(ext):
+                target_files.append(os.path.join(root, file))
+    return target_files
+
 def splittext(text:str, lowerbound:int=800):
     """Split text into slices with the number of tokens less than lowerbound.
     
@@ -81,20 +98,34 @@ async def async_translate_file(source, target, chkpoint, **kwargs):
     with open(target, 'w') as f:
         f.write(zhtext)
 
-def translate_folder(source, target, chkpoint_prefix, ext='.md', skipexist=True, **kwargs):
+def translate_folder( source
+                    , target
+                    , chkpoint_prefix
+                    , ext='.md'
+                    , skipexist=True
+                    , subpath=True
+                    , **kwargs):
+    listfiles = getfiles(source, ext) if subpath else os.listdir(source)
     if not os.path.exists(target):
         os.mkdir(target)
-    for fname in os.listdir(source):
+    for fname in listfiles:
         infname, outfname = os.path.join(source, fname), os.path.join(target, fname)
         if skipexist and os.path.exists(outfname):continue
         if fname.endswith(ext):
             chkpoint = f"{chkpoint_prefix}{fname}.jsonl"
             translate_file(infname, outfname, chkpoint, **kwargs)
 
-async def async_translate_folder(source, target, chkpoint_prefix, ext='.md', skipexist=True, **kwargs):
+async def async_translate_folder( source
+                                , target
+                                , chkpoint_prefix
+                                , ext='.md'
+                                , skipexist=True
+                                , subpath=True
+                                , **kwargs):
+    listfiles = getfiles(source, ext) if subpath else os.listdir(source)
     if not os.path.exists(target):
         os.mkdir(target)
-    for fname in os.listdir(source):
+    for fname in listfiles:
         infname, outfname = os.path.join(source, fname), os.path.join(target, fname)
         if skipexist and os.path.exists(outfname):continue
         if fname.endswith(ext):

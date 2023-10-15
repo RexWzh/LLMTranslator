@@ -1,6 +1,6 @@
 import re
 from chattool import *
-from .longtext import splittext
+from .longtext import splittext, getfiles
 from typing import Callable, Union, List
 
 def md2blocks(mdtxt, splitline='---SPLITLINE---'):
@@ -164,22 +164,37 @@ async def async_translate_mdfile(source, target, chkpoint, **kwargs):
     with open(target, 'w') as f:
         f.write(newtext)
 
-def translate_mdfolder(source, target, chkpoint_prefix, ext='.md', skipexist=True, **kwargs):
+def translate_mdfolder( source
+                      , target
+                      , chkpoint_prefix
+                      , ext='.md'
+                      , skipexist=True
+                      , subpath=True
+                      , **kwargs):
+    listfiles = getfiles(source, ext=ext) if subpath else os.listdir(source)
     if not os.path.exists(target):
         os.mkdir(target)
-    for fname in os.listdir(source):
+    for fname in listfiles:
         infname, outfname = os.path.join(source, fname), os.path.join(target, fname)
         if skipexist and os.path.exists(outfname):continue
         if fname.endswith(ext):
             chkpoint = f"{chkpoint_prefix}{fname}.jsonl"
             translate_mdfile(infname, outfname, chkpoint, **kwargs)
 
-async def async_translate_mdfolder(source, target, chkpoint_prefix, ext='.md', skipexist=True, **kwargs):
+async def async_translate_mdfolder( source
+                                  , target
+                                  , chkpoint_prefix
+                                  , ext='.md'
+                                  , skipexist=True
+                                  , subpath=True
+                                  , **kwargs):
+    listfiles = getfiles(source, ext=ext) if subpath else os.listdir(source)
     if not os.path.exists(target):
         os.mkdir(target)
-    for fname in os.listdir(source):
+    for fname in listfiles:
         infname, outfname = os.path.join(source, fname), os.path.join(target, fname)
         if skipexist and os.path.exists(outfname):continue
         if fname.endswith(ext):
             chkpoint = f"{chkpoint_prefix}{fname}.jsonl"
             await async_translate_mdfile(infname, outfname, chkpoint, **kwargs)
+
