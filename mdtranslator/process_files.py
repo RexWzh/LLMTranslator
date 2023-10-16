@@ -59,7 +59,7 @@ def initialize_files( source:str
         make_dirs([os.path.join(target, subpath) for subpath in subpaths])
         make_dirs([os.path.join(chkpoint_path, subpath) for subpath in subpaths])
     else:
-        listfiles = os.listdir(source)
+        listfiles = [file for file in os.listdir(source) if file.endswith(ext)]
     listinfiles = [os.path.join(source, fname) for fname in listfiles]
     listoutfiles = [os.path.join(target, fname) for fname in listfiles]
     listchatfiles = []

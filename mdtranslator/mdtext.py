@@ -5,7 +5,7 @@ from .process_files import (
     _translate_file, _translate_folder,
     _async_translate_file, _async_translate_folder
 )
-from .longtext import splittext, count_token
+from .longtext import splittext
 
 # write tools
 def md2blocks(mdtxt, splitline='---SPLITLINE---'):
@@ -18,7 +18,6 @@ def md2blocks(mdtxt, splitline='---SPLITLINE---'):
         codetxts (list): list of code blocks
         plaintxts (list): list of plain text blocks
     """
-    splitline='---SPLITLINE---'
     # get codes
     codetxts = re.findall(r"```(.*?)\n```", mdtxt, re.S)
     codetxts = [f"```{code}\n```" for code in codetxts]
@@ -112,14 +111,14 @@ def translate_mdfile(source, target, chkpoint, **kwargs):
     _translate_file(process_long_mdtext, source, target, chkpoint, **kwargs)
 
 def translate_mdfolder( source:str
-                    , target:str
-                    , chkpoint_path:str
-                    , chkpoint_prefix:str=""
-                    , ext:str='.md'
-                    , skipexist:bool=True
-                    , subpath:bool=True
-                    , display:bool=True
-                    , **kwargs):
+                      , target:str
+                      , chkpoint_path:str
+                      , chkpoint_prefix:str=""
+                      , ext:str='.md'
+                      , skipexist:bool=True
+                      , subpath:bool=True
+                      , display:bool=True
+                      , **kwargs):
     """Translate markdown folder.
 
     Args:
