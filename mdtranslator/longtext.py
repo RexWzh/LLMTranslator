@@ -62,7 +62,7 @@ def translate_file(source, target, chkpoint, **kwargs):
 def translate_folder( source:str
                     , target:str
                     , chkpoint_path:str
-                    , checkpoint_prefix:str=""
+                    , chkpoint_prefix:str=""
                     , ext:str='.md'
                     , skipexist:bool=True
                     , subpath:bool=True
@@ -74,7 +74,7 @@ def translate_folder( source:str
         source (str): source folder
         target (str): target folder
         chkpoint_path (str): checkpoint folder
-        checkpoint_prefix (str): checkpoint prefix
+        chkpoint_prefix (str): checkpoint prefix
         ext (str): extension
         skipexist (bool): whether to skip existing files
         subpath (bool): whether to scan subpath
@@ -82,7 +82,7 @@ def translate_folder( source:str
     """
     _translate_folder( translate_file
                      , source, target, chkpoint_path
-                     , checkpoint_prefix, ext, skipexist
+                     , chkpoint_prefix, ext, skipexist
                      , subpath, display, **kwargs)
 
 ## async version
@@ -132,7 +132,7 @@ async def async_translate_file( source, target, chkpoint, **kwargs):
 async def async_translate_folder( source:str
                                 , target:str
                                 , chkpoint_path:str
-                                , checkpoint_prefix:str=""
+                                , chkpoint_prefix:str=""
                                 , ext:str='.md'
                                 , skipexist:bool=True
                                 , subpath:bool=True
@@ -155,5 +155,5 @@ async def async_translate_folder( source:str
     """
     await _async_translate_folder( async_translate_file
                                  , source, target, chkpoint_path
-                                 , checkpoint_prefix, ext, skipexist
+                                 , chkpoint_prefix, ext, skipexist
                                  , subpath, display, **kwargs)

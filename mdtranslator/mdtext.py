@@ -114,7 +114,7 @@ def translate_mdfile(source, target, chkpoint, **kwargs):
 def translate_mdfolder( source:str
                     , target:str
                     , chkpoint_path:str
-                    , checkpoint_prefix:str=""
+                    , chkpoint_prefix:str=""
                     , ext:str='.md'
                     , skipexist:bool=True
                     , subpath:bool=True
@@ -134,7 +134,7 @@ def translate_mdfolder( source:str
     """
     _translate_folder( translate_mdfile
                      , source, target, chkpoint_path
-                     , checkpoint_prefix, ext, skipexist
+                     , chkpoint_prefix, ext, skipexist
                      , subpath, display, **kwargs)
 
 # async version
