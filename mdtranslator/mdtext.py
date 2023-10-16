@@ -191,7 +191,7 @@ async def async_translate_mdfile(source, target, chkpoint, **kwargs):
 async def async_translate_mdfolder( source:str
                                   , target:str
                                   , chkpoint_path:str
-                                  , checkpoint_prefix:str=""
+                                  , chkpoint_prefix:str=""
                                   , ext:str='.md'
                                   , skipexist:bool=True
                                   , subpath:bool=True
@@ -203,7 +203,7 @@ async def async_translate_mdfolder( source:str
         source (str): source folder
         target (str): target folder
         chkpoint_path (str): checkpoint folder
-        checkpoint_prefix (str): checkpoint prefix
+        chkpoint_prefix (str): checkpoint prefix
         msg2log (Callable): function to convert message to log
         max_tokens (Callable): function to get max tokens
         max_requests (int): maximum number of requests to make
@@ -214,5 +214,5 @@ async def async_translate_mdfolder( source:str
     """
     await _async_translate_folder( async_translate_mdfile
                                  , source, target, chkpoint_path
-                                 , checkpoint_prefix, ext, skipexist
+                                 , chkpoint_prefix, ext, skipexist
                                  , subpath, display, **kwargs)

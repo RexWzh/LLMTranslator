@@ -1,6 +1,7 @@
 import os
 from typing import Callable, Union
 
+ishidden = lambda path: os.path.split(path)[-1].startswith('.')
 def get_files_and_paths(path, ext='.md'):
     """Get files and paths relative to the `path`.
 
@@ -14,6 +15,7 @@ def get_files_and_paths(path, ext='.md'):
     target_files, sub_paths = [], []
     for root, _, files in os.walk(path):
         relative_path = os.path.relpath(root, path).lstrip('./')
+        if ishidden(relative_path): continue
         sub_paths.append(relative_path)
         for file in files:
             if file.endswith(ext):
@@ -51,11 +53,11 @@ def initialize_files( source:str
         listoutfiles (list): list of output files
         listchatfiles (list): list of chat files(checkpoints)
     """
-    make_dirs([target, chkpoint])
+    make_dirs([target, chkpoint_path])
     if subpath: # scan subpath
         listfiles, subpaths = get_files_and_paths(source, ext)
         make_dirs([os.path.join(target, subpath) for subpath in subpaths])
-        make_dirs([os.path.join(chkpoint, subpath) for subpath in subpaths])
+        make_dirs([os.path.join(chkpoint_path, subpath) for subpath in subpaths])
     else:
         listfiles = os.listdir(source)
     listinfiles = [os.path.join(source, fname) for fname in listfiles]
@@ -98,8 +100,8 @@ def _translate_folder( func:Callable
     for infname, outfname, chkpoint in zip(infiles, outfiles, chatfiles):
         if skipexist and os.path.exists(outfname):continue
         if display: print(f"Translating file: {infname}...")
-        if infname.endswith(ext):
-            func(infname, outfname, chkpoint, **kwargs)
+        assert infname.endswith(ext), f"File {infname} does not end with {ext}."
+        func(infname, outfname, chkpoint, **kwargs)
 
 # async version
 async def _async_translate_file( func:Callable
@@ -118,7 +120,7 @@ async def _async_translate_folder( func:Callable
                                  , source:str
                                  , target:str
                                  , chkpoint_path:str
-                                 , checkpoint_prefix:str=""
+                                 , chkpoint_prefix:str=""
                                  , ext='.md'
                                  , skipexist:bool=True
                                  , subpath:bool=True
@@ -126,9 +128,9 @@ async def _async_translate_folder( func:Callable
                                  , **kwargs):
     """Translate folder with a function."""
     infiles, outfiles, chatfiles = initialize_files( source, target, chkpoint_path
-                                                   , checkpoint_prefix, ext, subpath)
+                                                   , chkpoint_prefix, ext, subpath)
     for infname, outfname, chkpoint in zip(infiles, outfiles, chatfiles):
         if skipexist and os.path.exists(outfname):continue
         if display: print(f"Translating file: {infname}...")
-        if infname.endswith(ext):
-            await func(infname, outfname, chkpoint, **kwargs)
+        assert infname.endswith(ext), f"File {infname} does not end with {ext}."
+        await func(infname, outfname, chkpoint, **kwargs)
