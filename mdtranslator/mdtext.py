@@ -1,8 +1,13 @@
 import re
 from chattool import *
-from .longtext import splittext, getfiles
 from typing import Callable, Union, List
+from .process_files import (
+    _translate_file, _translate_folder,
+    _async_translate_file, _async_translate_folder
+)
+from .longtext import splittext, count_token
 
+# write tools
 def md2blocks(mdtxt, splitline='---SPLITLINE---'):
     """Split markdown text into code blocks and plain text blocks.
     
@@ -64,7 +69,8 @@ def recover_slices(lengths, isempty_slices, filtered_slices, emptyslice=""):
         nested_slices.append(flattened_slices[:length])
         flattened_slices = flattened_slices[length:]
     return nested_slices
-    
+
+# process files
 def process_long_mdtext( text:str
                        , chkpoint:str
                        , lowerbound:int=300
@@ -77,7 +83,7 @@ def process_long_mdtext( text:str
         lowerbound (int): lowerbound of the number of tokens in each slice
         msg2chat (Callable[[str], Chat]): function to convert message to chat
     Returns:
-        str: chat log
+        str: translated text
     """
     # split text into slices
     codes, nested_slices = splitmdtext(text, lowerbound=lowerbound)
@@ -93,13 +99,45 @@ def process_long_mdtext( text:str
         output_txt += newtxt + code
     return output_txt
 
-def translate_file(source, target, chkpoint, **kwargs):
-    with open(source, 'r') as f:
-        text = f.read()
-    zhtext = process_long_mdtext(text, chkpoint, **kwargs)
-    with open(target, 'w') as f:
-        f.write(zhtext)
+def translate_mdfile(source, target, chkpoint, **kwargs):
+    """Translate markdown file.
+    
+    Args:
+        source (str): source file
+        target (str): target file
+        chkpoint (str): checkpoint
+        lowerbound (int): lowerbound of the number of tokens in each slice
+        msg2chat (Callable[[str], Chat]): function to convert message to chat
+    """
+    _translate_file(process_long_mdtext, source, target, chkpoint, **kwargs)
 
+def translate_mdfolder( source:str
+                    , target:str
+                    , chkpoint_path:str
+                    , checkpoint_prefix:str=""
+                    , ext:str='.md'
+                    , skipexist:bool=True
+                    , subpath:bool=True
+                    , display:bool=True
+                    , **kwargs):
+    """Translate markdown folder.
+
+    Args:
+        source (str): source folder
+        target (str): target folder
+        chkpoint_path (str): checkpoint folder
+        checkpoint_prefix (str): checkpoint prefix
+        ext (str): extension
+        skipexist (bool): whether to skip existing files
+        subpath (bool): whether to scan subpath
+        display (bool): whether to display
+    """
+    _translate_folder( translate_mdfile
+                     , source, target, chkpoint_path
+                     , checkpoint_prefix, ext, skipexist
+                     , subpath, display, **kwargs)
+
+# async version
 async def async_process_long_mdtext( text:str
                                    , chkpoint:str
                                    , lowerbound:int=300
@@ -113,9 +151,11 @@ async def async_process_long_mdtext( text:str
         ncoroutines (int): number of coroutines
         msg2log (Callable): function to convert message to log
         max_tokens (Callable): function to get max tokens
+        max_requests (int): maximum number of requests to make
+        clearfile (bool): whether to clear the checkpoint file
 
     Returns:
-        str: chat log
+        str: translated text
     """
     # split text into slices
     codes, nested_slices = splitmdtext(text, lowerbound=lowerbound)
@@ -134,21 +174,6 @@ async def async_process_long_mdtext( text:str
         output_txt += newtxt + code
     return output_txt
 
-def translate_mdfile(source, target, chkpoint, **kwargs):
-    """Translate markdown file.
-    
-    Args:
-        source (str): source file
-        target (str): target file
-        chkpoint (str): checkpoint
-        kwargs: keyword arguments
-    """
-    with open(source, 'r') as f:
-        text = f.read()
-    newtext = process_long_mdtext(text, chkpoint, **kwargs)
-    with open(target, 'w') as f:
-        f.write(newtext)
-
 async def async_translate_mdfile(source, target, chkpoint, **kwargs):
     """Translate markdown file asynchronously.
     
@@ -156,45 +181,38 @@ async def async_translate_mdfile(source, target, chkpoint, **kwargs):
         source (str): source file
         target (str): target file
         chkpoint (str): checkpoint
-        kwargs: keyword arguments
+        lowerbound (int): lowerbound of the number of tokens in each slice
+        msg2log (Callable): function to convert message to log
+        max_tokens (Callable): function to get max tokens
+        max_requests (int): maximum number of requests to make
     """
-    with open(source, 'r') as f:
-        text = f.read()
-    newtext = await async_process_long_mdtext(text, chkpoint, **kwargs)
-    with open(target, 'w') as f:
-        f.write(newtext)
+    await _async_translate_file(async_process_long_mdtext, source, target, chkpoint, **kwargs)
 
-def translate_mdfolder( source
-                      , target
-                      , chkpoint_prefix
-                      , ext='.md'
-                      , skipexist=True
-                      , subpath=True
-                      , **kwargs):
-    listfiles = getfiles(source, ext=ext) if subpath else os.listdir(source)
-    if not os.path.exists(target):
-        os.mkdir(target)
-    for fname in listfiles:
-        infname, outfname = os.path.join(source, fname), os.path.join(target, fname)
-        if skipexist and os.path.exists(outfname):continue
-        if fname.endswith(ext):
-            chkpoint = f"{chkpoint_prefix}{fname}.jsonl"
-            translate_mdfile(infname, outfname, chkpoint, **kwargs)
-
-async def async_translate_mdfolder( source
-                                  , target
-                                  , chkpoint_prefix
-                                  , ext='.md'
-                                  , skipexist=True
-                                  , subpath=True
+async def async_translate_mdfolder( source:str
+                                  , target:str
+                                  , chkpoint_path:str
+                                  , checkpoint_prefix:str=""
+                                  , ext:str='.md'
+                                  , skipexist:bool=True
+                                  , subpath:bool=True
+                                  , display:bool=True
                                   , **kwargs):
-    listfiles = getfiles(source, ext=ext) if subpath else os.listdir(source)
-    if not os.path.exists(target):
-        os.mkdir(target)
-    for fname in listfiles:
-        infname, outfname = os.path.join(source, fname), os.path.join(target, fname)
-        if skipexist and os.path.exists(outfname):continue
-        if fname.endswith(ext):
-            chkpoint = f"{chkpoint_prefix}{fname}.jsonl"
-            await async_translate_mdfile(infname, outfname, chkpoint, **kwargs)
+    """Translate markdown folder asynchronously.
 
+    Args:
+        source (str): source folder
+        target (str): target folder
+        chkpoint_path (str): checkpoint folder
+        checkpoint_prefix (str): checkpoint prefix
+        msg2log (Callable): function to convert message to log
+        max_tokens (Callable): function to get max tokens
+        max_requests (int): maximum number of requests to make
+        ext (str): extension
+        skipexist (bool): whether to skip existing files
+        subpath (bool): whether to scan subpath
+        display (bool): whether to display
+    """
+    await _async_translate_folder( async_translate_mdfile
+                                 , source, target, chkpoint_path
+                                 , checkpoint_prefix, ext, skipexist
+                                 , subpath, display, **kwargs)
