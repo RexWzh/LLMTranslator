@@ -1,1 +1,2 @@
-from .longtext import translate_file
+from .longtext import *
+from .mdtext import *

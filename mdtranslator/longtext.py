@@ -1,7 +1,12 @@
 import os
 from chattool import Chat, process_chats, async_chat_completion, load_chats
 from typing import Callable, Union
+from .process_files import (
+    _translate_file, _translate_folder,
+    _async_translate_file, _async_translate_folder
+)
 
+# write tools
 count_token = lambda txt:Chat(txt).prompt_token()
 def splittext(text:str, lowerbound:int=800):
     """Split text into slices with the number of tokens less than lowerbound.
@@ -20,6 +25,7 @@ def splittext(text:str, lowerbound:int=800):
     if not slices[-1]:slices.pop()
     return slices
 
+# process files
 def process_long_text( text:str
                      , chkpoint:str
                      , lowerbound:int=300
@@ -32,7 +38,7 @@ def process_long_text( text:str
         lowerbound (int): lowerbound of the number of tokens in each slice
         msg2chat (Callable[[str], Chat]): function to convert message to chat
     Returns:
-        str: chat log
+        str: translated text
     """
     # split text into slices
     slices = splittext(text, lowerbound)
@@ -40,7 +46,46 @@ def process_long_text( text:str
     chats = process_chats(slices, msg2chat, chkpoint)
     # combine the chat log
     return '\n'.join(chat.last_message for chat in chats)
-        
+
+def translate_file(source, target, chkpoint, **kwargs):
+    """Translate file.
+    
+    Args:
+        source (str): source file
+        target (str): target file
+        chkpoint (str): checkpoint
+        lowerbound (int): lowerbound of the number of tokens in each slice
+        msg2chat (Callable[[str], Chat]): function to convert message to chat
+    """
+    _translate_file(process_long_text, source, target, chkpoint, **kwargs)
+
+def translate_folder( source:str
+                    , target:str
+                    , chkpoint_path:str
+                    , chkpoint_prefix:str=""
+                    , ext:str='.md'
+                    , skipexist:bool=True
+                    , subpath:bool=True
+                    , display:bool=True
+                    , **kwargs):
+    """Translate folder.
+
+    Args:
+        source (str): source folder
+        target (str): target folder
+        chkpoint_path (str): checkpoint folder
+        chkpoint_prefix (str): checkpoint prefix
+        ext (str): extension
+        skipexist (bool): whether to skip existing files
+        subpath (bool): whether to scan subpath
+        display (bool): whether to display
+    """
+    _translate_folder( translate_file
+                     , source, target, chkpoint_path
+                     , chkpoint_prefix, ext, skipexist
+                     , subpath, display, **kwargs)
+
+## async version
 async def async_process_long_text( text:str
                                  , chkpoint:str
                                  , lowerbound:int=300
@@ -54,9 +99,11 @@ async def async_process_long_text( text:str
         ncoroutines (int): number of coroutines
         msg2log (Callable): function to convert message to log
         max_tokens (Callable): function to get max tokens
+        max_requests (int): maximum number of requests to make
+        clearfile (bool): whether to clear the checkpoint file
 
     Returns:
-        str: chat log
+        str: translated text
     """
     # split text into slices
     slices = splittext(text, lowerbound)
@@ -67,36 +114,46 @@ async def async_process_long_text( text:str
     # combine the chat log
     return '\n'.join(chat.last_message for chat in chats)
 
-def translate_file(source, target, chkpoint, **kwargs):
-    with open(source, 'r') as f:
-        text = f.read()
-    zhtext = process_long_text(text, chkpoint, **kwargs)
-    with open(target, 'w') as f:
-        f.write(zhtext)
+async def async_translate_file( source, target, chkpoint, **kwargs):
+    """Translate file asynchronously.
+    
+    Args:
+        source (str): source file
+        target (str): target file
+        chkpoint (str): checkpoint
+        lowerbound (int): lowerbound of the number of tokens in each slice
+        msg2log (Callable): function to convert message to log
+        max_tokens (Callable): function to get max tokens
+        max_requests (int): maximum number of requests to make
+    """
+    await _async_translate_file( async_process_long_text
+                               , source, target, chkpoint, **kwargs)
 
-async def async_translate_file(source, target, chkpoint, **kwargs):
-    with open(source, 'r') as f:
-        text = f.read()
-    zhtext = await async_process_long_text(text, chkpoint, **kwargs)
-    with open(target, 'w') as f:
-        f.write(zhtext)
+async def async_translate_folder( source:str
+                                , target:str
+                                , chkpoint_path:str
+                                , chkpoint_prefix:str=""
+                                , ext:str='.md'
+                                , skipexist:bool=True
+                                , subpath:bool=True
+                                , display:bool=True
+                                , **kwargs):
+    """Translate folder asynchronously.
 
-def translate_folder(source, target, chkpoint_prefix, ext='.md', skipexist=True, **kwargs):
-    if not os.path.exists(target):
-        os.mkdir(target)
-    for fname in os.listdir(source):
-        infname, outfname = os.path.join(source, fname), os.path.join(target, fname)
-        if skipexist and os.path.exists(outfname):continue
-        if fname.endswith(ext):
-            chkpoint = f"{chkpoint_prefix}{fname}.jsonl"
-            translate_file(infname, outfname, chkpoint, **kwargs)
-
-async def async_translate_folder(source, target, chkpoint_prefix, ext='.md', skipexist=True, **kwargs):
-    if not os.path.exists(target):
-        os.mkdir(target)
-    for fname in os.listdir(source):
-        infname, outfname = os.path.join(source, fname), os.path.join(target, fname)
-        if skipexist and os.path.exists(outfname):continue
-        if fname.endswith(ext):
-            chkpoint = f"{chkpoint_prefix}{fname}.jsonl"
-            await async_translate_file(infname, outfname, chkpoint, **kwargs)
+    Args:
+        source (str): source folder
+        target (str): target folder
+        chkpoint_path (str): checkpoint folder
+        checkpoint_prefix (str): checkpoint prefix
+        ext (str): extension
+        msg2log (Callable): function to convert message to log
+        max_tokens (Callable): function to get max tokens
+        max_requests (int): maximum number of requests to make
+        skipexist (bool): whether to skip existing files
+        subpath (bool): whether to scan subpath
+        display (bool): whether to display
+    """
+    await _async_translate_folder( async_translate_file
+                                 , source, target, chkpoint_path
+                                 , chkpoint_prefix, ext, skipexist
+                                 , subpath, display, **kwargs)

@@ -1,2 +1,6 @@
 tests/testfiles
 __pycache__/
+*.jsonl
+*.vscode
+*.ipynb_checkpoints
+*.json
